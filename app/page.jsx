@@ -12,8 +12,8 @@ import FooterSection from "@/components/landing/FooterSection";
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-500 to-purple-700">
-      <HeaderSection />
       <main>
+        <HeaderSection />
         <HeroSection />
         <FeaturesSection />
         <HowItWorksSection />

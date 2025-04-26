@@ -41,44 +41,6 @@ export default function LocationsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <header className="bg-gradient-to-r from-purple-600 to-blue-500 text-white">
-        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <MapPin className="h-6 w-6" />
-            <span className="text-xl font-bold">CityExplorer</span>
-          </Link>
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="hover:text-white/80 transition-colors">
-              Home
-            </Link>
-            <Link
-              href="/locations"
-              className="hover:text-white/80 transition-colors font-semibold"
-            >
-              Locations
-            </Link>
-            <Link
-              href="/profile"
-              className="hover:text-white/80 transition-colors"
-            >
-              Profile
-            </Link>
-          </nav>
-          <div className="flex items-center space-x-4">
-            <Link href="/signin">
-              <Button variant="ghost" className="text-white hover:bg-white/10">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button className="bg-white text-purple-600 hover:bg-white/90">
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8 relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start gap-8">
           {/* Main Content */}

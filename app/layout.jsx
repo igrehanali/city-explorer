@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AosProvider } from "@/components/aos-provider";
 import { AuthProvider } from "@/lib/auth-context";
+import HeaderSection from "@/components/landing/HeaderSection";
 // import FooterSection from "@/components/FooterSection";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -29,10 +30,11 @@ export default function RootLayout({ children }) {
           suppressHydrationWarning
         >
           <AuthProvider>
+            <HeaderSection />
             <AosProvider>{children}</AosProvider>
           </AuthProvider>
         </ThemeProvider>
-      {/* <FooterSection/> */}
+        {/* <FooterSection/> */}
       </body>
     </html>
   );

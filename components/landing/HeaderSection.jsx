@@ -59,12 +59,22 @@ export default function HeaderSection() {
         </nav>
         {user ? (
           <>
-            <button
-              onClick={() => setShowSignOutDialog(true)}
-              className="w-full sm:w-auto px-8 py-3 text-lg font-semibold text-white bg-white/10 backdrop-blur-sm border-2 border-white/20 rounded-lg shadow-lg hover:bg-white/20 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-            >
-              Sign Out
-            </button>
+            <div className="flex items-center space-x-4">
+              <Link href="/profile">
+                <Button
+                  variant="ghost"
+                  className="text-white hover:bg-white/10"
+                >
+                  Profile
+                </Button>
+              </Link>
+              <button
+                onClick={() => setShowSignOutDialog(true)}
+                className="w-full sm:w-auto px-8 py-3 text-lg font-semibold text-white bg-white/10 backdrop-blur-sm border-2 border-white/20 rounded-lg shadow-lg hover:bg-white/20 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+              >
+                Sign Out
+              </button>
+            </div>
             <SignOutConfirmDialog
               open={showSignOutDialog}
               onOpenChange={setShowSignOutDialog}
