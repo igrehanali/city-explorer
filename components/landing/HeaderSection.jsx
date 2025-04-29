@@ -51,6 +51,12 @@ export default function HeaderSection() {
             How It Works
           </Link>
           <Link
+            href="/help"
+            className="text-white hover:text-white/80 transition-colors"
+          >
+            Help Center
+          </Link>
+          <Link
             href="#testimonials"
             className="text-white hover:text-white/80 transition-colors"
           >
