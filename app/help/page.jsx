@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -12,7 +12,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-hot-toast";
 import { db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  orderBy,
+} from "firebase/firestore";
 
 export default function HelpCenterPage() {
   const router = useRouter();
@@ -22,6 +29,37 @@ export default function HelpCenterPage() {
     question: "",
     description: "",
   });
+  const [userRequests, setUserRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+
+  // Fetch user's previous help requests
+  useEffect(() => {
+    const fetchRequests = async () => {
+      if (!user?.uid) {
+        setUserRequests([]);
+        return;
+      }
+      setLoadingRequests(true);
+      try {
+        console.log(user);
+        const q = query(
+          collection(db, "helpRequests"),
+          where("userEmail", "==", user.email)
+        );
+        const querySnapshot = await getDocs(q);
+        const requests = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setUserRequests(requests);
+      } catch (error) {
+        setUserRequests([]);
+      } finally {
+        setLoadingRequests(false);
+      }
+    };
+    fetchRequests();
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -122,6 +160,59 @@ export default function HelpCenterPage() {
                 </Button>
               </div>
             </form>
+
+            {/* User's previous help requests */}
+            <div className="mt-10">
+              <h2 className="text-lg font-semibold text-purple-700 mb-4">
+                Your Previous Help Requests
+              </h2>
+              {loadingRequests ? (
+                <div className="text-gray-500">Loading...</div>
+              ) : userRequests.length === 0 ? (
+                <div className="text-gray-500">
+                  No previous help requests found.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userRequests.map((req) => (
+                    <Card
+                      key={req.id}
+                      className="border border-purple-100 bg-white/70"
+                    >
+                      <CardHeader>
+                        <CardTitle className="text-purple-800 text-base">
+                          {req.question}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-gray-700 mb-2">
+                          {req.description}
+                        </div>
+                        <div className="text-xs text-gray-400 flex justify-between">
+                          <span>
+                            Status:{" "}
+                            <span
+                              className={
+                                req.status === "pending"
+                                  ? "text-yellow-600"
+                                  : "text-green-600"
+                              }
+                            >
+                              {req.status}
+                            </span>
+                          </span>
+                          <span>
+                            {req.createdAt && req.createdAt.toDate
+                              ? req.createdAt.toDate().toLocaleString()
+                              : ""}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </main>
