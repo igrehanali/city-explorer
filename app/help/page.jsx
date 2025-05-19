@@ -1,95 +1,112 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "react-hot-toast";
 import { db } from "@/lib/firebase";
 import {
   collection,
+  doc,
   addDoc,
+  onSnapshot,
   query,
-  where,
-  getDocs,
   orderBy,
+  setDoc,
+  serverTimestamp,
+  getDocs,
+  where,
 } from "firebase/firestore";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { toast } from "react-hot-toast";
 
-export default function HelpCenterPage() {
-  const router = useRouter();
+export default function ChatWithAdminPage() {
   const { user } = useAuth();
+  const [message, setMessage] = useState("");
+  const [chatId, setChatId] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [helpData, setHelpData] = useState({
-    question: "",
-    description: "",
-  });
-  const [userRequests, setUserRequests] = useState([]);
-  const [loadingRequests, setLoadingRequests] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  // Fetch user's previous help requests
+  // Scroll to bottom when messages change
   useEffect(() => {
-    const fetchRequests = async () => {
-      if (!user?.uid) {
-        setUserRequests([]);
-        return;
-      }
-      setLoadingRequests(true);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Create or find the chat between user and admin
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const initializeChat = async () => {
       try {
-        console.log(user);
-        const q = query(
-          collection(db, "helpRequests"),
-          where("userEmail", "==", user.email)
+        const chatQuery = query(
+          collection(db, "chats"),
+          where("userId", "==", user.uid)
         );
-        const querySnapshot = await getDocs(q);
-        const requests = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setUserRequests(requests);
+        const chatSnapshot = await getDocs(chatQuery);
+
+        if (!chatSnapshot.empty) {
+          // Chat already exists
+          const existingChat = chatSnapshot.docs[0];
+          setChatId(existingChat.id);
+        } else {
+          // Create new chat
+          const newChatRef = doc(collection(db, "chats"));
+          await setDoc(newChatRef, {
+            userId: user.uid,
+            userEmail: user.email,
+            createdAt: serverTimestamp(),
+          });
+          setChatId(newChatRef.id);
+        }
       } catch (error) {
-        setUserRequests([]);
-      } finally {
-        setLoadingRequests(false);
+        console.error("Error initializing chat:", error);
+        toast.error("Failed to start chat.");
       }
     };
-    fetchRequests();
+
+    initializeChat();
   }, [user]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setHelpData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  // Listen to messages in real-time
+  useEffect(() => {
+    if (!chatId) return;
 
-  const handleSubmit = async (e) => {
+    const messagesRef = collection(db, "chats", chatId, "messages");
+    const q = query(messagesRef, orderBy("createdAt", "asc"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(msgs);
+    });
+
+    return () => unsubscribe();
+  }, [chatId]);
+
+  // Handle sending a message
+  const handleSend = async (e) => {
     e.preventDefault();
+    if (!message.trim()) return;
+
     setIsLoading(true);
-
     try {
-      const helpRef = await addDoc(collection(db, "helpRequests"), {
-        userId: user?.uid || "anonymous",
-        userEmail: user?.email || "anonymous",
-        ...helpData,
-        createdAt: new Date(),
-        status: "pending",
+      const messageRef = collection(db, "chats", chatId, "messages");
+      await addDoc(messageRef, {
+        text: message.trim(),
+        senderId: user.uid,
+        senderEmail: user.email,
+        createdAt: serverTimestamp(),
+        fromAdmin: false,
       });
-
-      toast.success("Your help request has been submitted successfully!");
-      setHelpData({
-        question: "",
-        description: "",
-      });
+      setMessage("");
     } catch (error) {
-      console.error("Error submitting help request:", error);
-      toast.error("Failed to submit help request. Please try again.");
+      console.error("Failed to send message:", error);
+      toast.error("Failed to send message.");
     } finally {
       setIsLoading(false);
     }
@@ -111,108 +128,46 @@ export default function HelpCenterPage() {
         <Card className="max-w-2xl mx-auto shadow-xl border-purple-200">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-purple-800">
-              Help Center
+              Chat with Support
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-gray-600">
-              Have a question or need assistance? Fill out the form below and
-              our team will get back to you as soon as possible.
-            </p>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="question">Question</Label>
-                  <Input
-                    type="text"
-                    id="question"
-                    name="question"
-                    value={helpData.question}
-                    onChange={handleInputChange}
-                    placeholder="What's your question?"
-                    required
-                    className="border-gray-200 focus:border-purple-500"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={helpData.description}
-                    onChange={handleInputChange}
-                    placeholder="Please provide more details about your question or issue..."
-                    required
-                    className="min-h-[150px] border-gray-200 focus:border-purple-500"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
-                  disabled={isLoading}
+          <CardContent className="flex flex-col h-[500px]">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`max-w-[75%] px-4 py-2 rounded-lg ${
+                    msg.fromAdmin
+                      ? "bg-purple-100 self-start text-gray-800"
+                      : "bg-indigo-100 self-end text-gray-900"
+                  }`}
                 >
-                  {isLoading ? "Submitting..." : "Submit Help Request"}
-                </Button>
-              </div>
-            </form>
-
-            {/* User's previous help requests */}
-            <div className="mt-10">
-              <h2 className="text-lg font-semibold text-purple-700 mb-4">
-                Your Previous Help Requests
-              </h2>
-              {loadingRequests ? (
-                <div className="text-gray-500">Loading...</div>
-              ) : userRequests.length === 0 ? (
-                <div className="text-gray-500">
-                  No previous help requests found.
+                  <div className="text-sm">{msg.text}</div>
+                  <div className="text-xs text-gray-500 text-right mt-1">
+                    {msg.createdAt?.toDate
+                      ? msg.createdAt.toDate().toLocaleTimeString()
+                      : "Sending..."}
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {userRequests.map((req) => (
-                    <Card
-                      key={req.id}
-                      className="border border-purple-100 bg-white/70"
-                    >
-                      <CardHeader>
-                        <CardTitle className="text-purple-800 text-base">
-                          {req.question}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-gray-700 mb-2">
-                          {req.description}
-                        </div>
-                        <div className="text-xs text-gray-400 flex justify-between">
-                          <span>
-                            Status:{" "}
-                            <span
-                              className={
-                                req.status === "pending"
-                                  ? "text-yellow-600"
-                                  : "text-green-600"
-                              }
-                            >
-                              {req.status}
-                            </span>
-                          </span>
-                          <span>
-                            {req.createdAt && req.createdAt.toDate
-                              ? req.createdAt.toDate().toLocaleString()
-                              : ""}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+              ))}
+              <div ref={messagesEndRef}></div>
             </div>
+
+            <form
+              onSubmit={handleSend}
+              className="flex items-center gap-2 pt-4 border-t mt-4"
+            >
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1"
+              />
+              <Button type="submit" disabled={isLoading || !message}>
+                {isLoading ? "Sending..." : "Send"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </main>
