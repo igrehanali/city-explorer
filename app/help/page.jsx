@@ -137,17 +137,26 @@ export default function ChatWithAdminPage() {
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`max-w-[75%] px-4 py-2 rounded-lg ${
-                    msg.fromAdmin
-                      ? "bg-purple-100 self-start text-gray-800"
-                      : "bg-indigo-100 self-end text-gray-900"
+                  className={`flex ${
+                    msg.fromAdmin ? "justify-start" : "justify-end"
                   }`}
                 >
-                  <div className="text-sm">{msg.text}</div>
-                  <div className="text-xs text-gray-500 text-right mt-1">
-                    {msg.createdAt?.toDate
-                      ? msg.createdAt.toDate().toLocaleTimeString()
-                      : "Sending..."}
+                  <div
+                    className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-sm ${
+                      msg.fromAdmin
+                        ? "bg-purple-100 text-gray-800 rounded-bl-none"
+                        : "bg-indigo-500 text-white rounded-br-none"
+                    }`}
+                  >
+                    <div className="text-sm break-words">{msg.text}</div>
+                    <div className="text-[10px] text-right text-white/70 mt-1">
+                      {msg.createdAt?.toDate
+                        ? msg.createdAt.toDate().toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "Sending..."}
+                    </div>
                   </div>
                 </div>
               ))}
